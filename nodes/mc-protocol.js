@@ -12,9 +12,10 @@
 // ===== MC 软元件代码映射 =====
 var MC_DEVICE_CODES = {
   'D': 0xA8, 'W': 0xB4, 'X': 0x9C, 'Y': 0x9D,
-  'M': 0x90, 'L': 0x92, 'B': 0xA0, 'R': 0xAF
+  'M': 0x90, 'L': 0x92, 'B': 0xA0, 'R': 0xAF,
+  'SM': 0x91, 'SD': 0xA9, 'ZR': 0xB0
 };
-var BIT_DEVICES = { 'X': true, 'Y': true, 'M': true, 'L': true, 'B': true };
+var BIT_DEVICES = { 'X': true, 'Y': true, 'M': true, 'L': true, 'B': true, 'SM': true };
 var WORD_32_TYPES = { 'INT32': true, 'UINT32': true, 'FLOAT32': true };
 var WORD_64_TYPES = { 'DOUBLE': true, 'FLOAT64': true };
 
@@ -407,10 +408,10 @@ function toAsciiHex(buf) {
   if (!buf || buf.length < 11) return Buffer.alloc(0);
   var is4E = (buf[0] === 0x54 || buf[0] === 0xD4);
   var hex = '';
-  
+
   function b2h(b) { return ('0' + b.toString(16)).slice(-2).toUpperCase(); }
   function u16le2h(off) { return buf.readUInt16LE(off).toString(16).padStart(4, '0').toUpperCase(); }
-  
+
   if (is4E) {
     if (buf.length < 15) return Buffer.alloc(0);
     hex += b2h(buf[0]);      // 子头低
@@ -454,18 +455,18 @@ function fromAsciiHex(asciiBuf) {
   if (!asciiBuf || asciiBuf.length === 0 || asciiBuf.length % 2 !== 0) return null;
   var hexStr = asciiBuf.toString('ascii');
   if (!/^[0-9A-Fa-f]*$/.test(hexStr)) return null;
-  
+
   var subheader = parseInt(hexStr.substr(0, 2), 16);
   var is4E = (subheader === 0x54 || subheader === 0xD4);
   var is3E = (subheader === 0x50 || subheader === 0xD0);
   if (!is3E && !is4E) return null;
-  
+
   function h2b(off) { return parseInt(hexStr.substr(off, 2), 16); }
   function h2u16le(hexOff, buf, bufOff) {
     var val = parseInt(hexStr.substr(hexOff, 4), 16);
     buf.writeUInt16LE(val, bufOff);
   }
-  
+
   var result;
   if (is4E) {
     if (hexStr.length < 50) return null;
@@ -500,23 +501,23 @@ function fromAsciiHex(asciiBuf) {
 function dehexifyFrame(buf, hdrLen, dataLenOff) {
   var asciiHdrLen = hdrLen * 2;
   if (buf.length < asciiHdrLen) return { consumed: 0 };
-  
+
   var hdrHex = buf.toString('ascii', 0, asciiHdrLen);
   if (!/^[0-9A-Fa-f]*$/.test(hdrHex)) return { err: 'Non-hex chars in frame header', consumed: 1 };
-  
+
   var subheader = parseInt(hdrHex.substr(0, 2), 16);
   var is4E = (subheader === 0x54 || subheader === 0xD4);
-  
+
   // ASCII 中数据长度字段偏移 = 二进制偏移 * 2，长度 4 字符
   var asciiDataLenOff = dataLenOff * 2;
   var dataLen = parseInt(hdrHex.substr(asciiDataLenOff, 4), 16) - 2;
-  
+
   if (dataLen < 0 || dataLen > 2000) return { err: 'dataLen out of range: ' + dataLen, consumed: asciiHdrLen };
-  
+
   var fullBinLen = hdrLen + dataLen;
   var totalHexLen = fullBinLen * 2;
   if (buf.length < totalHexLen) return { consumed: 0 };
-  
+
   var bin = fromAsciiHex(buf.slice(0, totalHexLen));
   if (!bin) return { err: 'Hex decode failed for full frame', consumed: totalHexLen };
   return { result: bin, consumed: totalHexLen };
@@ -787,11 +788,11 @@ function applyTransform(rawValue, tagDef) {
 // 与 SLMP ASCII（hex 直译）的两个关键差异：
 //   ① 设备段 = 软元件名(2字符) + 6位地址（X/Y/W/B 十六进制，D/M/L/R 十进制）
 //   ② 数据长字段 = 其后的 ASCII 字符数（不是二进制字节数）
-var MC_DEVICE_NAMES = { D: 'D*', W: 'W*', X: 'X*', Y: 'Y*', M: 'M*', L: 'L*', B: 'B*', R: 'R*' };
+var MC_DEVICE_NAMES = { D: 'D*', W: 'W*', X: 'X*', Y: 'Y*', M: 'M*', L: 'L*', B: 'B*', R: 'R*', SM: 'SM', SD: 'SD', ZR: 'ZR' };
 
 function _h2(v) { return ('0' + v.toString(16)).slice(-2).toUpperCase(); }
 function _h4(v) { return ('000' + v.toString(16)).slice(-4).toUpperCase(); }
-function _isHexNameDev(rt) { return rt === 'X' || rt === 'Y' || rt === 'W' || rt === 'B'; }
+function _isHexNameDev(rt) { return rt === 'X' || rt === 'Y' || rt === 'W' || rt === 'B' || rt === 'ZR'; }
 function _addr6(startAddr, regType) {
   var s = _isHexNameDev(regType) ? startAddr.toString(16).toUpperCase() : String(startAddr);
   return ('000000' + s).slice(-6);

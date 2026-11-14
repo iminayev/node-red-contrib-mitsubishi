@@ -27,7 +27,7 @@
     <span style="font-size:11px">数量</span>
     <input id="w-batch-count" type="number" value="1" min="1" max="500" style="width:55px;font-size:11px" placeholder="1">
     <select id="w-batch-reg" style="width:55px;font-size:11px">
-      <option>D</option><option>W</option><option>R</option><option>X</option><option>Y</option><option>M</option><option>L</option><option>B</option>
+      <option>D</option><option>W</option><option>R</option><option>X</option><option>Y</option><option>M</option><option>L</option><option>B</option><option>SM</option><option>SD</option><option>ZR</option>
     </select>
     <select id="w-batch-dt" style="width:75px;font-size:11px">
       <option>INT16</option><option>UINT16</option><option>INT32</option><option>UINT32</option><option>FLOAT32</option><option>BOOL</option>
@@ -245,7 +245,7 @@ M,0,BOOL,,,,,启动信号,m_start,"></textarea>
         cb.on('change', function () { self._selected[idx] = $(this).prop('checked'); });
         tr.append($('<td>').append(cb));
 
-        var reg = mkSel(['D','W','R','X','Y','M','L','B'], row.regType || 'D');
+        var reg = mkSel(['D','W','R','X','Y','M','L','B','SM','SD','ZR'], row.regType || 'D');
         reg.on('change', function () { self.update(idx, 'regType', $(this).val()); });
         tr.append($('<td>').append(reg));
 
